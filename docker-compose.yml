@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+      - ./configs:/app/configs
+    environment:
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DB=ib_data
+      - PG_USER=postgres
+      - PG_PASS=postgres
+    depends_on:
+      - db
+    networks:
+      - data-network
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=ib_data
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - data-network
+
+volumes:
+  postgres_data:
+
+networks:
+  data-network:
+    driver: bridge 

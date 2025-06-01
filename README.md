@@ -17,6 +17,9 @@ This repository is solely focused on **automated and manual ingestion** of perso
 - **ETL Modules**: For each source, implement standard `extract`, `transform`, `load` steps.
 - **Modular Sources**: Each source is independent and can be run/tested individually.
 - **Automation First**: Prefer API integrations and scheduled ingestion over manual entry.
+- **Data Quality**: Built-in validation and quality checks at each stage.
+- **Observability**: Comprehensive logging, monitoring, and alerting.
+- **Security**: End-to-end encryption and secure credential management.
 
 ---
 
@@ -27,7 +30,8 @@ ib-data-ingestion-bronze-ingestion/
 │
 ├── configs/                  # Environment and credentials
 │   ├── .env
-│   └── credentials_template.yaml
+│   ├── credentials_template.yaml
+│   └── validation_schemas/   # JSON Schema definitions
 │
 ├── data/                     # Storage of raw pulled data
 │   └── bronze/
@@ -37,7 +41,9 @@ ib-data-ingestion-bronze-ingestion/
 │   │   ├── extract.py
 │   │   ├── transform.py
 │   │   ├── load.py
-│   │   └── schema.json
+│   │   ├── schema.json
+│   │   ├── validation.py
+│   │   └── tests/
 │   └── ...
 │
 ├── sql/                      # DDL for creating bronze tables
@@ -47,34 +53,90 @@ ib-data-ingestion-bronze-ingestion/
 ├── utils/                    # Shared functionality
 │   ├── db.py
 │   ├── api.py
-│   └── logger.py
+│   ├── logger.py
+│   ├── validation.py
+│   ├── monitoring.py
+│   └── security.py
 │
 ├── tests/                    # Unit and integration tests
 │   └── test_garmin.py
 │
 ├── dags/                     # Airflow DAGs
+│   ├── garmin_dag.py
+│   └── common/
 │
-├── main.py                   # Entry point to trigger ingestion
+├── monitoring/              # Monitoring and alerting
+│   ├── metrics/
+│   └── alerts/
+│
+├── main.py                  # Entry point to trigger ingestion
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 🚀 Quickstart
+## 🔁 Quickstart
 
-### 1. Install and Set Up
+### 1. Development Setup with Docker
 
 ```bash
+# Clone the repository
 git clone https://github.com/yourname/ib-data-bronze-ingestion.git
 cd ib-data-bronze-ingestion
 
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+# Start the development environment
+docker-compose up --build
+
+# To run in detached mode (in the background)
+docker-compose up -d
+
+# To view logs when running in detached mode
+docker-compose logs -f
+
+# To stop the environment
+docker-compose down
 ```
 
-### 2. Configure Environment Variables
+### 2. Development Workflow
+
+The Docker setup provides:
+- Hot-reloading: Changes to your code are immediately reflected
+- Isolated PostgreSQL database that won't conflict with other projects
+- Easy database resets when needed
+- Simple path to AWS deployment when you're ready
+
+Common development commands:
+```bash
+# Start the development environment
+docker-compose up -d
+
+# View logs while developing
+docker-compose logs -f
+
+# Run your ingestion scripts
+docker-compose exec app python main.py garmin
+
+# Reset the database if needed (removes all data)
+docker-compose down -v
+docker-compose up -d
+
+# Stop everything when you're done
+docker-compose down
+```
+
+### 3. Viewing Your Data
+
+During development, you can quickly check your data using:
+```bash
+# Connect to PostgreSQL and run queries
+docker-compose exec db psql -U postgres -d ib_data
+
+# Or run a one-off query
+docker-compose exec db psql -U postgres -d ib_data -c "SELECT * FROM bronze_garmin LIMIT 5;"
+```
+
+### 4. Configure Environment Variables
 
 Create a `.env` file in the `configs/` directory:
 
@@ -90,7 +152,7 @@ GARMIN_CLIENT_SECRET=...
 TOGGL_API_KEY=...
 ```
 
-### 3. Run Ingestion for a Source
+### 5. Run Ingestion for a Source
 
 ```bash
 python main.py garmin
@@ -105,14 +167,24 @@ Each pipeline uses the following pattern:
 ```python
 # extract.py
 def fetch_data():
+    # Implement rate limiting and retry logic
+    # Handle API authentication
+    # Implement data freshness checks
     return raw_json
 
 # transform.py
 def clean(raw):
+    # Apply data validation
+    # Handle missing data
+    # Normalize timestamps
+    # Apply business rules
     return structured_dict
 
 # load.py
 def load_to_postgres(data):
+    # Implement upsert logic
+    # Handle conflicts
+    # Track data lineage
     insert_to_bronze(data)
 ```
 
@@ -125,8 +197,17 @@ CREATE TABLE bronze_<source> (
     raw_data JSONB,
     ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     source_timestamp TIMESTAMP,
-    raw_id TEXT
+    raw_id TEXT,
+    validation_status TEXT,
+    error_message TEXT,
+    lineage_id TEXT,
+    metadata JSONB
 );
+
+-- Indexes for common query patterns
+CREATE INDEX idx_bronze_source_timestamp ON bronze_<source> (source_timestamp);
+CREATE INDEX idx_bronze_validation_status ON bronze_<source> (validation_status);
+CREATE INDEX idx_bronze_raw_data_gin ON bronze_<source> USING GIN (raw_data);
 ```
 
 ---
@@ -147,16 +228,48 @@ CREATE TABLE bronze_<source> (
 ## 🧪 Testing
 
 ```bash
+# Run all tests
 pytest tests/
+
+# Run specific source tests
+pytest tests/test_garmin.py
+
+# Run with coverage
+pytest --cov=pipelines tests/
 ```
 
-Use `mock` data or saved API responses to test `transform` and `load` logic without hitting production APIs.
+Testing Strategy:
+- Unit tests for each ETL component
+- Integration tests with mock APIs
+- Data validation tests
+- Performance tests for large datasets
+- Security tests for credential handling
 
 ---
 
 ## 🔐 Security & Credentials
 
-- Credentials are stored in `.env` for local dev.
+- Credentials are stored in `.env` for local dev
+- Production credentials use AWS Secrets Manager
+- All API keys are rotated regularly
+- Data is encrypted at rest and in transit
+- Access is controlled via IAM roles
+- Audit logging for all data access
+
+---
+
+## 📊 Monitoring & Observability
+
+- Data freshness metrics
+- Ingestion success/failure rates
+- API rate limit tracking
+- Data quality metrics
+- Resource utilization
+- Alert thresholds for:
+  - Failed ingestions
+  - Data quality issues
+  - API rate limits
+  - Storage capacity
 
 ---
 
@@ -167,9 +280,17 @@ Use `mock` data or saved API responses to test `transform` and `load` logic with
 - [ ] Airflow integration
 - [ ] Data validation and type checks
 - [ ] Modular retry and alert system
+- [ ] Data quality monitoring
+- [ ] Automated testing pipeline
+- [ ] Documentation generation
+- [ ] Performance optimization
+- [ ] Security hardening
+- [ ] Backup and recovery procedures
+- [ ] Data retention policies
+- [ ] Data lineage tracking
+- [ ] Cost optimization
 
 ---
-
 
 ## 📬 Contact
 
