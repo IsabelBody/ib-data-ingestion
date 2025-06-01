@@ -1,28 +1,38 @@
-# 🧠 qs-data-ingestion
-A modular, extensible data ingestion system designed to collect, store, and manage **personal data across multiple sources** — such as wearables, workouts, water intake, productivity tools, and more.
+# 🧱 personal-data-bronze-ingestion
 
-This project is focused on building a personal "data lakehouse" starting with the **bronze layer** (raw ingestion), using best practices from modern data engineering pipelines.
+A modular, source-agnostic ingestion framework for collecting **raw personal data** into a PostgreSQL-based bronze layer. This is **Repository 1** of a multi-repository personal data lakehouse project.
+
 
 ---
 
-## 📐 Project Goals
+## 📌 Purpose
 
-- ✅ Automate ingestion from various personal data sources (Garmin, Toggl, Water Tracker, Notion, etc.)
-- ✅ Store all raw data in a structured, queryable format (PostgreSQL bronze tables)
-- ✅ Maintain modular, source-isolated ETL pipelines
-- ✅ Preserve raw historical data for future analytics or transformation
-- ✅ Make ingestion resilient, testable, and scalable
+This repository is solely focused on **automated and manual ingestion** of personal data from a variety of sources into a structured raw storage layer (bronze). Each data source is isolated, versioned, and built to support long-term extensibility and automation.
+
+---
+
+## 🧠 Core Concepts
+
+- **Bronze Layer**: Immutable raw data from each source, stored in JSON format in PostgreSQL.
+- **ETL Modules**: For each source, implement standard `extract`, `transform`, `load` steps.
+- **Modular Sources**: Each source is independent and can be run/tested individually.
+- **Automation First**: Prefer API integrations and scheduled ingestion over manual entry.
 
 ---
 
 ## 🗂 Directory Structure
 
 ```
-personal-data-pipeline/
+ib-data-ingestion-bronze-ingestion/
 │
-├── dags/                      # Airflow DAGs (future orchestration)
+├── configs/                  # Environment and credentials
+│   ├── .env
+│   └── credentials_template.yaml
 │
-├── pipelines/                 # One folder per data source
+├── data/                     # Storage of raw pulled data
+│   └── bronze/
+│
+├── pipelines/                # One folder per data source
 │   ├── garmin/
 │   │   ├── extract.py
 │   │   ├── transform.py
@@ -30,25 +40,21 @@ personal-data-pipeline/
 │   │   └── schema.json
 │   └── ...
 │
-├── configs/
-│   ├── .env                   # Environment variables for local development
-│   └── credentials_template.yaml
+├── sql/                      # DDL for creating bronze tables
+│   └── bronze/
+│       └── garmin.sql
 │
-├── data/
-│   └── bronze/                # Optional raw file storage (JSON, CSV)
+├── utils/                    # Shared functionality
+│   ├── db.py
+│   ├── api.py
+│   └── logger.py
 │
-├── sql/
-│   ├── bronze/                # SQL table definitions for bronze layer
-│   └── ...
+├── tests/                    # Unit and integration tests
+│   └── test_garmin.py
 │
-├── utils/
-│   ├── db.py                  # PostgreSQL connection management
-│   ├── logger.py              # Unified logging interface
-│   └── api.py                 # Common API helpers (e.g., headers, retries)
+├── dags/                     # Airflow DAGs
 │
-├── tests/                     # Unit and integration tests
-│
-├── main.py                    # CLI entry point
+├── main.py                   # Entry point to trigger ingestion
 ├── requirements.txt
 └── README.md
 ```
@@ -57,38 +63,34 @@ personal-data-pipeline/
 
 ## 🚀 Quickstart
 
-### 1. Clone the Repo
+### 1. Install and Set Up
 
 ```bash
-git clone https://github.com/IsabelBody/qs-data-ingestion.git
-cd qs-data-ingestion
-```
+git clone https://github.com/yourname/ib-data-bronze-ingestion.git
+cd ib-data-bronze-ingestion
 
-### 2. Create a Virtual Environment
-
-```bash
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
+### 2. Configure Environment Variables
 
-Create a `.env` file inside the `configs/` directory.
+Create a `.env` file in the `configs/` directory:
 
 ```env
 PG_HOST=localhost
 PG_PORT=5432
-PG_DB=personal_data
+PG_DB=ib_data
 PG_USER=postgres
 PG_PASS=password
 
-GARMIN_CLIENT_ID=your_id
-GARMIN_CLIENT_SECRET=your_secret
-...
+GARMIN_CLIENT_ID=...
+GARMIN_CLIENT_SECRET=...
+TOGGL_API_KEY=...
 ```
 
-### 4. Run Ingestion for a Source
+### 3. Run Ingestion for a Source
 
 ```bash
 python main.py garmin
@@ -96,38 +98,25 @@ python main.py garmin
 
 ---
 
-## 🔁 Supported Data Sources
+## 🔁 ETL Flow Pattern
 
-| Source       | Status     | Notes |
-|--------------|------------|-------|
-| Garmin       | ✅ Planned | Sleep, HR, steps, stress |
-| Toggl        | ✅ Planned | Time tracking |
-| WaterBottle  | 🔜          | Daily water intake via API |
-| Notion       | 🔜          | Manual tracking tables (e.g. mood, weight) |
-| Airtable     | 🔜          | Possession inventory, body proportions |
-| Weather      | 🔜          | External enrichments based on location/date |
-
----
-
-## 🛠 ETL Design Pattern
-
-Each source implements a simple ETL contract:
+Each pipeline uses the following pattern:
 
 ```python
 # extract.py
 def fetch_data():
-    return raw_json_data
+    return raw_json
 
 # transform.py
-def clean(data):
-    return transformed_data
+def clean(raw):
+    return structured_dict
 
 # load.py
-def load_to_bronze(data):
-    insert_into_postgres(data)
+def load_to_postgres(data):
+    insert_to_bronze(data)
 ```
 
-Each module writes data to a **bronze layer table** in PostgreSQL, with the following common schema:
+All data is inserted into a common bronze table schema:
 
 ```sql
 CREATE TABLE bronze_<source> (
@@ -142,59 +131,50 @@ CREATE TABLE bronze_<source> (
 
 ---
 
+## 📚 Supported Sources (Planned)
+
+| Source       | Status     | Ingestion Method | Notes |
+|--------------|------------|------------------|-------|
+| Garmin       | 🟡 Planned | API              | Biometrics: sleep, HR, steps |
+| Toggl        | 🟡 Planned | API              | Time tracking |
+| WaterBottle  | 🟡 Planned | API              | Fluid intake |
+| Notion       | 🟡 Planned | API/manual       | Custom personal trackers |
+| Airtable     | 🟡 Planned | API/manual       | Inventories, body measurements |
+| Weather      | 🟡 Planned | API              | Enrichment by timestamp/location |
+
+---
+
 ## 🧪 Testing
-
-Tests live in the `tests/` folder and include:
-
-- Unit tests for transforms
-- Mocked ingestion runs
-- Database insertion checks
-
-Run tests with:
 
 ```bash
 pytest tests/
 ```
 
----
-
-## 🏗 Future Roadmap
-
-| Feature                        | Priority |
-|-------------------------------|----------|
-| Airflow DAGs for orchestration| High     |
-| dbt integration for modeling  | Medium   |
-| Grafana dashboards            | Medium   |
-| Webhooks where available      | Medium   |
-| Cloud storage (S3) + Athena   | Medium   |
-| Machine learning models       | Low      |
+Use `mock` data or saved API responses to test `transform` and `load` logic without hitting production APIs.
 
 ---
 
-## 🔐 Security Notes
+## 🔐 Security & Credentials
 
-- API credentials are stored locally in `.env` during development.
-- For production, secrets should be stored in a manager like **AWS Secrets Manager**, **Vault**, or **environment injection** via CI/CD.
-- Do not commit `.env` or credentials to Git.
+- Credentials are stored in `.env` for local dev.
 
 ---
 
-## 🤝 Contributions
+## 🏗 Roadmap
 
-This is a personal project and not yet open for community contributions. However, if you're building something similar and want to collaborate, feel free to reach out.
+- [ ] Basic CLI to run ingestion by source
+- [ ] Local scheduling (e.g. cron or `schedule` library)
+- [ ] Airflow integration
+- [ ] Data validation and type checks
+- [ ] Modular retry and alert system
 
 ---
+
 
 ## 📬 Contact
 
 Created by **Isabel Body**  
-X: [@TheBayesianInitiative]  
 Email: isabelbody@gmail.com
+X: [@TheBayesianInitiative]  
 
----
 
-## 🧠 Philosophy
-
-> “Know thyself.” — Socrates  
->
-> This project is an attempt to truly understand personal patterns through data — by logging, visualizing, and learning from every aspect of life.
