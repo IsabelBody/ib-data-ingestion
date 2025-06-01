@@ -1,5 +1,4 @@
-# 🧠 personal-data-pipeline
-
+# 🧠 qs-data-ingestion
 A modular, extensible data ingestion system designed to collect, store, and manage **personal data across multiple sources** — such as wearables, workouts, water intake, productivity tools, and more.
 
 This project is focused on building a personal "data lakehouse" starting with the **bronze layer** (raw ingestion), using best practices from modern data engineering pipelines.
@@ -61,8 +60,8 @@ personal-data-pipeline/
 ### 1. Clone the Repo
 
 ```bash
-git clone https://github.com/yourname/personal-data-pipeline.git
-cd personal-data-pipeline
+git clone https://github.com/IsabelBody/qs-data-ingestion.git
+cd qs-data-ingestion
 ```
 
 ### 2. Create a Virtual Environment
@@ -188,9 +187,9 @@ This is a personal project and not yet open for community contributions. However
 
 ## 📬 Contact
 
-Created by **[Your Name]**  
-Twitter: [@yourhandle]  
-Email: your@email.com
+Created by **Isabel Body**  
+X: [@TheBayesianInitiative]  
+Email: isabelbody@gmail.com
 
 ---
 
