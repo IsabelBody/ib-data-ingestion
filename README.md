@@ -10,6 +10,8 @@ This project is currently in the development phase with the following status:
 - ✅ Basic project structure and architecture defined
 - ✅ Development environment setup with Docker
 - ✅ Initial database schema design
+- ✅ Monitoring and health checks implemented
+- ✅ Configuration validation system in place
 - 🟡 Data source implementations in progress
 - ❌ Production deployment pending
 - ❌ AWS migration pending
@@ -112,13 +114,188 @@ All data sources are currently marked as "Planned" and are being implemented inc
 - Production deployment will be addressed after local development is complete
 - Monitoring and alerting will be simplified for local development
 
----
+## 🛠️ Features
+
+### Core Features
+- Modular data source implementation
+- PostgreSQL-based bronze layer storage
+- Docker-based development environment
+- Comprehensive monitoring and metrics
+- Health check system
+- Configuration validation
+- Structured logging
+
+### Monitoring & Observability
+- Prometheus metrics integration
+- Health check endpoints
+- System component monitoring
+- Performance metrics collection
+- Error tracking and reporting
+
+### Configuration Management
+- JSON Schema-based validation
+- Environment variable management
+- YAML configuration support
+- Secure credential handling
+- Configuration file validation
+
+### Data Quality
+- Basic data validation
+- Schema enforcement
+- Error handling and reporting
+- Data quality metrics
+
+## 📋 Prerequisites
+
+- Python 3.11+
+- Docker and Docker Compose
+- PostgreSQL 15+
+- Git
+
+## 🚀 Quickstart
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/personal-data-bronze-ingestion.git
+   cd personal-data-bronze-ingestion
+   ```
+
+2. **Set up environment**
+   ```bash
+   # Copy environment template
+   cp env.template .env
+   
+   # Edit .env with your configuration
+   nano .env
+   ```
+
+3. **Start the development environment**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Verify the setup**
+   ```bash
+   # Check health status
+   curl http://localhost:8000/health
+   
+   # View metrics
+   curl http://localhost:8000/metrics
+   ```
+
+## 📁 Project Structure
+
+```
+personal-data-bronze-ingestion/
+│
+├── configs/                  # Configuration files
+│   ├── .env
+│   ├── validation_schemas/   # JSON Schema definitions
+│   └── credentials/
+│
+├── data/                     # Data storage
+│   └── bronze/
+│
+├── monitoring/              # Monitoring and metrics
+│   ├── metrics.py
+│   └── health.py
+│
+├── pipelines/              # Data source implementations
+│   ├── source_1/
+│   │   ├── extract.py
+│   │   ├── transform.py
+│   │   └── load.py
+│   └── ...
+│
+├── sql/                    # Database schemas
+│   └── bronze/
+│
+├── tests/                  # Test suite
+│   ├── unit/
+│   └── integration/
+│
+├── utils/                  # Shared utilities
+│   ├── config_validator.py
+│   ├── db.py
+│   └── logger.py
+│
+├── main.py                 # Application entry point
+├── requirements.txt        # Python dependencies
+└── README.md
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+Required environment variables are defined in `env.template`. Copy this file to `.env` and fill in your values.
+
+### Configuration Files
+- `configs/validation_schemas/config_schema.json`: JSON Schema for configuration validation
+- `configs/credentials/`: Secure storage for credentials (git-ignored)
+
+## 📊 Monitoring
+
+### Health Checks
+Health checks are available at `http://localhost:8000/health` and monitor:
+- Database connectivity
+- API availability
+- Storage accessibility
+- System resources
+
+### Metrics
+Prometheus metrics are exposed at `http://localhost:8000/metrics` and include:
+- Ingestion metrics
+- Error rates
+- Processing times
+- Data volumes
+- System health status
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=.
+
+# Run specific test file
+pytest tests/test_specific.py
+```
+
+## 📝 Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🔐 Security
+
+- All credentials are stored in environment variables
+- Configuration validation prevents misconfigurations
+- Health checks monitor system security
+- Regular security updates
+
+## 🤝 Support
+
+For support, please:
+1. Check the documentation
+2. Search existing issues
+3. Create a new issue if needed
+
+## 🔄 Updates
+
+- Added comprehensive monitoring system
+- Implemented health checks
+- Added configuration validation
+- Enhanced documentation
+- Improved error handling
 
 ## 📌 Purpose
 
 This repository is solely focused on **automated and manual ingestion** of personal data from a variety of sources into a structured raw storage layer (bronze). Each data source is isolated, versioned, and built to support long-term extensibility and automation.
-
----
 
 ## 🧠 Core Concepts
 
@@ -129,8 +306,6 @@ This repository is solely focused on **automated and manual ingestion** of perso
 - **Data Quality**: Built-in validation and quality checks at each stage.
 - **Observability**: Comprehensive logging, monitoring, and alerting.
 - **Security**: End-to-end encryption and secure credential management.
-
----
 
 ## 🗂 Directory Structure
 
@@ -182,8 +357,6 @@ ib-data-ingestion-bronze-ingestion/
 ├── requirements.txt
 └── README.md
 ```
-
----
 
 ## 🔁 Quickstart
 
@@ -266,8 +439,6 @@ SOURCE_1_CLIENT_SECRET=...
 ```bash
 python main.py source_1
 ```
-
----
 
 ## 🔁 ETL Flow Pattern
 
@@ -365,8 +536,6 @@ CREATE INDEX idx_bronze_environment ON bronze_<source> (environment);
 CREATE INDEX idx_bronze_quality_score ON bronze_<source> (quality_score);
 ```
 
----
-
 ## 📚 Supported Sources
 
 | Source       | Status     | Ingestion Method | Notes |
@@ -374,8 +543,6 @@ CREATE INDEX idx_bronze_quality_score ON bronze_<source> (quality_score);
 | Source 1     | 🟡 Planned | API              | Example source |
 | Source 2     | 🟡 Planned | API              | Example source |
 | Source 3     | 🟡 Planned | API/manual       | Example source |
-
----
 
 ## 🧪 Testing
 
@@ -397,8 +564,6 @@ Testing Strategy:
 - Performance tests for large datasets
 - Security tests for credential handling
 
----
-
 ## 🔐 Security & Credentials
 
 - Credentials are stored in `.env` for local dev
@@ -406,8 +571,6 @@ Testing Strategy:
 - Data is encrypted at rest and in transit
 - Access is controlled via IAM roles
 - Audit logging for all data access
-
----
 
 ## 📊 Monitoring & Observability
 
@@ -421,8 +584,6 @@ Testing Strategy:
   - Data quality issues
   - API rate limits
   - Storage capacity
-
----
 
 ## 🏗 Roadmap
 
@@ -440,8 +601,6 @@ Testing Strategy:
 - [ ] Data retention policies
 - [ ] Data lineage tracking
 - [ ] Cost optimization
-
----
 
 ## 📋 Technical Specification
 

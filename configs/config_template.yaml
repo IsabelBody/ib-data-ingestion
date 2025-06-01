@@ -1,0 +1,66 @@
+# Database Configuration
+database:
+  host: localhost
+  port: 5432
+  database: ib_data
+  user: postgres
+  password: password
+  min_connections: 5
+  max_connections: 20
+
+# Pipeline Configuration
+pipeline:
+  batch_size: 100
+  retry_attempts: 3
+  retry_delay: 5
+  rate_limit: 100  # requests per minute
+
+# Monitoring Configuration
+monitoring:
+  enable_metrics: true
+  enable_alerts: true
+  alert_thresholds:
+    error_rate: 0.05
+    latency: 300
+    data_quality: 0.8
+    resource_utilization:
+      cpu: 0.8
+      memory: 0.85
+      disk: 0.85
+
+# Alert Notifications
+notifications:
+  enable: false
+  smtp:
+    server: smtp.gmail.com
+    port: 587
+    username: your-email@gmail.com
+    password: your-app-password
+    from_email: your-email@gmail.com
+    to_email: recipient@example.com
+
+# Data Source Configurations
+sources:
+  template:
+    name: template
+    api_url: https://api.example.com/data
+    api_key: your-api-key
+    rate_limit: 100
+    retry_attempts: 3
+    retry_delay: 5
+    validation_schema: pipelines/template/schema.json
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: json
+  file: logs/data_ingestion.log
+  max_size: 10485760  # 10MB
+  backup_count: 5
+
+# Development Settings
+development:
+  debug: false
+  test_mode: false
+  mock_apis: false
+  local_storage: true 
