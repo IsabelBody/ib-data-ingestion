@@ -97,11 +97,7 @@ Thank you for your interest in contributing to this project! This document provi
 - Add monitoring metrics for critical operations
 
 ## Security Guidelines
-
-- Never commit sensitive data
 - Use environment variables for credentials
-- Follow security best practices
-- Report security issues privately
 
 ## Questions and Support
 
