@@ -364,7 +364,7 @@ ib-data-ingestion-bronze-ingestion/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourname/ib-data-bronze-ingestion.git
+git clone https://github.com/IsabelBody/ib-data-bronze-ingestion.git
 cd ib-data-ingestion
 
 # Start the development environment
