@@ -6,8 +6,6 @@ This directory contains all configuration files and environment settings for the
 
 ```
 configs/
-├── .env                    # Environment variables (gitignored)
-├── .env.template          # Template for environment variables
 ├── credentials_template.yaml  # Template for API credentials
 └── validation_schemas/    # JSON Schema definitions
     └── source_1.json      # Example schema

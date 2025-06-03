@@ -98,42 +98,60 @@ This repository is focused on **automated and manual ingestion** of personal dat
 ## 📁 Project Structure
 
 ```
-personal-data-bronze-ingestion/
+IB-DATA-INGESTION/
 │
-├── configs/                  # Configuration files
-│   ├── .env
-│   ├── validation_schemas/   # JSON Schema definitions
-│   └── credentials/
+├── configs/                             # Global configuration files
+│   ├── validation_schemas/              # JSON schema definitions
+│   └── credentials/                     # Credential storage (should be .gitignored)
 │
-├── data/                     # Data storage
-│   └── bronze/
+├── monitoring/                          # Global monitoring and observability
+│   ├── alerts.py                        # Alert definitions
+│   ├── health.py                        # Health check logic
+│   ├── metrics.py                       # Custom metrics logic
+│   └── prometheus.yml                   # Prometheus config
 │
-├── monitoring/              # Monitoring and metrics
-│   ├── metrics.py
-│   └── health.py
+├── src/                                 # All source code
+│   ├── pipelines/                       # Data ingestion pipelines
+│   │   ├── templates/                   # Abstract/base pipeline templates
+│   │   └── sources/                     # Source-specific pipelines
+│   │       └── source_1/
+│   │           ├── extract.py
+│   │           ├── transform.py
+│   │           └── load.py
+│   │
+│   ├── sql/                             # SQL for database setup
+│   │   └── bronze/                      # Bronze layer schema definitions
+│   │       └── create_tables.sql
+│   │
+│   ├── utils/                           # Shared reusable utility functions
+│   │   ├── config_validator.py
+│   │   ├── db.py
+│   │   └── logger.py
+│   │
+│   └── main.py                          # Application entry point
 │
-├── pipelines/              # Data source implementations
-│   ├── source_1/
-│   │   ├── extract.py
-│   │   ├── transform.py
-│   │   └── load.py
-│   └── ...
+├── docker/                              # Docker and orchestration
+│   ├── services/                        # Individual service definitions (Postgres, Prometheus, etc.)
+│   └── compose/                         # Docker Compose files (dev/staging/prod)
 │
-├── sql/                    # Database schemas
-│   └── bronze/
+├── data/                                # Local dev data (should be .gitignored)
+│   └── bronze/                          # Raw bronze layer data
 │
-├── tests/                  # Test suite
-│   ├── unit/
-│   └── integration/
+├── tests/                               # Test suite
+│   ├── unit/                            # Unit tests for utils, logic, etc.
+│   └── integration/                     # Integration tests for end-to-end flows
 │
-├── utils/                  # Shared utilities
-│   ├── config_validator.py
-│   ├── db.py
-│   └── logger.py
+├── docs/                               
+│   ├── architecture/                            
+│   └── guides/                    
 │
-├── main.py                 # Application entry point
-├── requirements.txt        # Python dependencies
-└── README.md
+├── .env                                 # Environment variables (gitignored)
+├── .env.example                         # Template for environment variables
+├── .gitignore                           # Git ignore rules
+├── requirements.txt                     # Python dependencies
+└── README.md                            # Project overview and usage instructions
+
+
 ```
 
 ---
@@ -461,6 +479,5 @@ $$ LANGUAGE plpgsql;
 
 Created by **Isabel Body**  
 Email: isabelbody@gmail.com  
-X: [@TheBayesianInitiative]
 
 
