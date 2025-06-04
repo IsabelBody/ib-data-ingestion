@@ -66,4 +66,27 @@ def test_schema():
             "value": {"type": "number"}
         },
         "required": ["id", "timestamp", "value"]
+    }
+
+@pytest.fixture(autouse=True)
+def setup_test_env():
+    """Set up test environment variables."""
+    os.environ['GARMIN_EMAIL'] = 'test@example.com'
+    os.environ['GARMIN_PASSWORD'] = 'test_password'
+    os.environ['PG_HOST'] = 'localhost'
+    os.environ['PG_PORT'] = '5432'
+    os.environ['PG_DB'] = 'test_db'
+    os.environ['PG_USER'] = 'test_user'
+    os.environ['PG_PASS'] = 'test_password'
+    yield
+    # Clean up environment variables after tests
+    for key in ['GARMIN_EMAIL', 'GARMIN_PASSWORD', 'PG_HOST', 'PG_PORT', 'PG_DB', 'PG_USER', 'PG_PASS']:
+        os.environ.pop(key, None)
+
+@pytest.fixture
+def test_dates():
+    """Provide test dates for the pipeline."""
+    return {
+        'start_date': datetime.now() - timedelta(days=7),
+        'end_date': datetime.now()
     } 

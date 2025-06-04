@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from src.pipelines.sources.garmin.extract import GarminExtractor
 from src.pipelines.sources.garmin.transform import GarminTransformer
 from src.pipelines.sources.garmin.load import GarminLoader
+from src.pipelines.sources.garmin.pipeline import GarminPipeline
 
 @pytest.fixture
 def mock_garmin_client():
@@ -161,4 +162,29 @@ def test_load_data(loader):
         loader.load(test_data)
         
         mock_cursor.execute.assert_called_once()
-        mock_conn.commit.assert_called_once() 
+        mock_conn.commit.assert_called_once()
+
+def test_pipeline_integration(mock_garmin_client, test_dates):
+    """Test the complete pipeline integration."""
+    with patch('src.utils.db.get_db_connection') as mock_db:
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_db.return_value.__enter__.return_value = mock_conn
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        
+        pipeline = GarminPipeline()
+        pipeline.run(test_dates['start_date'], test_dates['end_date'])
+        
+        # Verify activities were processed
+        mock_garmin_client.get_activities.assert_called_once_with(
+            test_dates['start_date'],
+            test_dates['end_date']
+        )
+        
+        # Verify sleep data was processed for each day
+        expected_sleep_calls = (test_dates['end_date'] - test_dates['start_date']).days + 1
+        assert mock_garmin_client.get_sleep_data.call_count == expected_sleep_calls
+        
+        # Verify database operations
+        assert mock_cursor.execute.call_count > 0
+        assert mock_conn.commit.call_count > 0 
