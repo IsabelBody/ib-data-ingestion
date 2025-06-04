@@ -18,9 +18,20 @@ class PipelineRunner:
         self.metrics_collector = MetricsCollector()
         self.db = DatabaseConnection()
 
+    def is_source_configured(self, source_name: str) -> bool:
+        """Check if a source is properly configured."""
+        try:
+            credentials = self.credential_manager.get_credentials(source_name)
+            return all(credentials.values())
+        except Exception:
+            return False
+
     async def run_pipeline(self, source_name: str, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None):
         """Run the ETL pipeline for a specific source."""
         try:
+            if not self.is_source_configured(source_name):
+                raise ValueError(f"Source '{source_name}' is not properly configured. Please check your environment variables.")
+            
             logger.info(f"Starting pipeline for source: {source_name}")
             
             # Set default dates if not provided
@@ -59,17 +70,35 @@ class PipelineRunner:
 
 async def main():
     parser = argparse.ArgumentParser(description="Run data ingestion pipeline")
-    parser.add_argument("source", help="Name of the data source to ingest")
+    parser.add_argument("source", nargs="?", help="Name of the data source to ingest")
     parser.add_argument("--start-date", help="Start date (YYYY-MM-DD)", type=str)
     parser.add_argument("--end-date", help="End date (YYYY-MM-DD)", type=str)
+    parser.add_argument("--list-sources", action="store_true", help="List available and configured sources")
     
     args = parser.parse_args()
+    
+    runner = PipelineRunner()
+    
+    if args.list_sources:
+        # List all available sources (from pipelines directory)
+        import os
+        import glob
+        pipeline_dirs = glob.glob("pipelines/*/")
+        available_sources = [os.path.basename(os.path.dirname(d)) for d in pipeline_dirs]
+        
+        print("\nAvailable data sources:")
+        for source in available_sources:
+            status = "✓ Configured" if runner.is_source_configured(source) else "✗ Not configured"
+            print(f"- {source}: {status}")
+        return
+    
+    if not args.source:
+        parser.error("Please specify a source or use --list-sources")
     
     # Parse dates if provided
     start_date = datetime.strptime(args.start_date, "%Y-%m-%d") if args.start_date else None
     end_date = datetime.strptime(args.end_date, "%Y-%m-%d") if args.end_date else None
     
-    runner = PipelineRunner()
     await runner.run_pipeline(args.source, start_date, end_date)
 
 if __name__ == "__main__":
