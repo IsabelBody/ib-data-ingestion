@@ -1,30 +1,26 @@
-FROM python:3.11-slim
+FROM postgres:15
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies
+# Install additional extensions
 RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
+    postgresql-15-postgis-3 \
+    postgresql-15-postgis-3-scripts \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+# Create directory for initialization scripts
+RUN mkdir -p /docker-entrypoint-initdb.d/bronze
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY . .
-
-# Create necessary directories
-RUN mkdir -p logs data/bronze
+# Copy initialization scripts
+COPY src/sql/bronze/create_tables.sql /docker-entrypoint-initdb.d/bronze/
+COPY docker/services/init.sql /docker-entrypoint-initdb.d/
 
 # Set environment variables
-ENV PYTHONPATH=/app
-ENV ENVIRONMENT=development
-ENV LOG_LEVEL=INFO
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=password
+ENV POSTGRES_DB=ib_data
 
-# Run the application
-CMD ["python", "main.py"] 
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD pg_isready -U postgres -d ib_data 
