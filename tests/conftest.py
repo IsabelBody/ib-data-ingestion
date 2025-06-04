@@ -3,6 +3,10 @@ import os
 from datetime import datetime, timedelta
 import json
 from unittest.mock import Mock
+import sys
+
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 @pytest.fixture
 def test_config():

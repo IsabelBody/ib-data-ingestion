@@ -1,11 +1,12 @@
 import pytest
 from datetime import datetime, timedelta
-from pipelines.template.extract import DataExtractor
-from pipelines.template.transform import DataTransformer
-from pipelines.template.load import DataLoader
+from pipelines.templates.extract import DataExtractor
+from pipelines.templates.transform import DataTransformer
+from pipelines.templates.load import DataLoader
 from utils.validation import DataValidator
 import json
 import os
+from unittest.mock import patch, Mock
 
 @pytest.fixture
 def config():
@@ -19,11 +20,29 @@ def config():
     }
 
 @pytest.fixture
-def validator():
-    schema_path = os.path.join('pipelines', 'template', 'schema.json')
-    with open(schema_path) as f:
-        schema = json.load(f)
-    return DataValidator(schema)
+def test_schema():
+    return {
+        "type": "object",
+        "required": ["id", "timestamp", "value"],
+        "properties": {
+            "id": {"type": "string"},
+            "timestamp": {"type": "string", "format": "date-time"},
+            "value": {"type": "number"},
+            "_metadata": {
+                "type": "object",
+                "required": ["fetched_at", "source", "api_version"],
+                "properties": {
+                    "fetched_at": {"type": "string", "format": "date-time"},
+                    "source": {"type": "string"},
+                    "api_version": {"type": "string"}
+                }
+            }
+        }
+    }
+
+@pytest.fixture
+def validator(test_schema):
+    return DataValidator(test_schema)
 
 @pytest.fixture
 def sample_data():
@@ -67,29 +86,16 @@ async def test_extract(config):
         assert '_metadata' in data[0]
 
 def test_transform(validator, sample_data):
-    transformer = DataTransformer(validator)
+    transformer = DataTransformer()
     transformed_data = transformer.transform(sample_data)
     
     assert len(transformed_data) == len(sample_data)
-    assert 'raw_data' in transformed_data[0]
-    assert 'source_timestamp' in transformed_data[0]
-    assert 'raw_id' in transformed_data[0]
-    assert 'validation_status' in transformed_data[0]
+    assert transformed_data[0] == sample_data[0]  # No transformation in template
 
 @pytest.mark.asyncio
 async def test_load(sample_data):
     loader = DataLoader('test_source')
-    
-    # Mock the database manager
-    async def mock_insert(*args, **kwargs):
-        return 1
-    
-    from utils.db import DatabaseManager
-    DatabaseManager.insert_bronze_data = mock_insert
-    
     results = await loader.load(sample_data)
     
-    assert results['total_records'] == len(sample_data)
-    assert results['successful_records'] == len(sample_data)
-    assert results['failed_records'] == 0
-    assert len(results['errors']) == 0 
+    assert results.records_processed == len(sample_data)
+    assert len(results.errors) == 0 

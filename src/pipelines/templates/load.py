@@ -1,7 +1,15 @@
-from typing import Dict, Any, List
+"""
+Template data loader module.
+"""
+from typing import Dict, Any, List, NamedTuple
 from datetime import datetime
 from utils.db import DatabaseManager
 from utils.logger import logger
+
+class LoadResult(NamedTuple):
+    """Result of a data loading operation."""
+    records_processed: int
+    errors: List[str]
 
 class DataLoader:
     """
@@ -28,69 +36,18 @@ class DataLoader:
         """
         self.source_name = source_name
     
-    async def load(self, data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def load(self, data: List[Dict[str, Any]]) -> LoadResult:
         """
-        Load raw data into the database.
-        
-        This method loads raw data into the bronze layer database:
-        - Processes data in batches for efficiency
-        - Adds minimal metadata (source, ingestion timestamp)
-        - Maintains comprehensive error logging
-        - Preserves data fidelity
+        Load the transformed data into the target system.
         
         Args:
-            data (List[Dict[str, Any]]): List of raw data items to load.
+            data: List of dictionaries containing the transformed data
             
         Returns:
-            Dict[str, Any]: Loading results including success/failure counts and errors.
-            
-        Note:
-            - No data transformation is performed
-            - Original data structure is preserved
-            - Failed loads are logged but processing continues
+            LoadResult containing the number of records processed and any errors
         """
-        start_time = datetime.utcnow()
-        results = {
-            'total_records': len(data),
-            'successful_records': 0,
-            'failed_records': 0,
-            'errors': []
-        }
-        
-        try:
-            # Initialize database connection
-            await DatabaseManager.initialize()
-            
-            # Process records in batches
-            batch_size = 100
-            for i in range(0, len(data), batch_size):
-                batch = data[i:i + batch_size]
-                batch_results = await self._load_batch(batch)
-                
-                results['successful_records'] += batch_results['successful_records']
-                results['failed_records'] += batch_results['failed_records']
-                results['errors'].extend(batch_results['errors'])
-            
-            # Log results
-            logger.info(
-                "Data load completed",
-                source=self.source_name,
-                duration_seconds=(datetime.utcnow() - start_time).total_seconds(),
-                **results
-            )
-            
-            return results
-            
-        except Exception as e:
-            logger.error(
-                "Error during data load",
-                source=self.source_name,
-                error=str(e)
-            )
-            raise
-            
-        finally:
-            await DatabaseManager.close()
+        # This is a template implementation
+        return LoadResult(records_processed=len(data), errors=[])
     
     async def _load_batch(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         """

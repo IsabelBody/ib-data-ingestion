@@ -21,24 +21,21 @@ HEALTH_STATUS = Gauge(
 class HealthChecker:
     """Class for performing health checks on system components."""
     
-    def __init__(self, db_config: Dict[str, Any]):
-        self.db_config = db_config
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.is_healthy = True
         self.components = {
             'database': self.check_database,
             'api': self.check_api,
             'storage': self.check_storage
         }
     
-    def check_database(self) -> Dict[str, Any]:
+    def check_database(self, connection) -> Dict[str, Any]:
         """Check database health."""
         try:
-            conn = psycopg2.connect(**self.db_config)
-            cursor = conn.cursor()
-            cursor.execute('SELECT 1')
-            cursor.close()
-            conn.close()
-            
+            connection.execute('SELECT 1')
             HEALTH_STATUS.labels(component='database').set(1)
+            self.is_healthy = True
             return {
                 'status': 'healthy',
                 'message': 'Database connection successful',
@@ -47,6 +44,7 @@ class HealthChecker:
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
             HEALTH_STATUS.labels(component='database').set(0)
+            self.is_healthy = False
             return {
                 'status': 'unhealthy',
                 'message': str(e),
@@ -60,6 +58,7 @@ class HealthChecker:
             response = requests.get('http://localhost:8000/health')
             if response.status_code == 200:
                 HEALTH_STATUS.labels(component='api').set(1)
+                self.is_healthy = True
                 return {
                     'status': 'healthy',
                     'message': 'API is responding',
@@ -70,6 +69,7 @@ class HealthChecker:
         except Exception as e:
             logger.error(f"API health check failed: {e}")
             HEALTH_STATUS.labels(component='api').set(0)
+            self.is_healthy = False
             return {
                 'status': 'unhealthy',
                 'message': str(e),
@@ -82,6 +82,7 @@ class HealthChecker:
             # Add your storage health check logic here
             # This is a placeholder implementation
             HEALTH_STATUS.labels(component='storage').set(1)
+            self.is_healthy = True
             return {
                 'status': 'healthy',
                 'message': 'Storage is accessible',
@@ -90,6 +91,7 @@ class HealthChecker:
         except Exception as e:
             logger.error(f"Storage health check failed: {e}")
             HEALTH_STATUS.labels(component='storage').set(0)
+            self.is_healthy = False
             return {
                 'status': 'unhealthy',
                 'message': str(e),

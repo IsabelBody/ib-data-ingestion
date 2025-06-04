@@ -1,114 +1,120 @@
-import os
-import asyncpg
-from typing import Optional, Dict, Any
-from contextlib import asynccontextmanager
+"""
+Database management module.
+"""
+import logging
+from typing import Dict, Any, List, Optional
+import psycopg2
+from psycopg2.extras import DictCursor
+from datetime import datetime
+import json
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    _pool: Optional[asyncpg.Pool] = None
+    """Class for managing database connections and operations."""
     
-    @classmethod
-    async def initialize(cls) -> None:
-        """Initialize the database connection pool."""
-        if cls._pool is None:
-            cls._pool = await asyncpg.create_pool(
-                host=os.getenv('PG_HOST', 'localhost'),
-                port=int(os.getenv('PG_PORT', '5432')),
-                database=os.getenv('PG_DB', 'ib_data'),
-                user=os.getenv('PG_USER', 'postgres'),
-                password=os.getenv('PG_PASS', 'password'),
-                min_size=5,
-                max_size=20
-            )
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.connection = None
+        self.cursor = None
     
-    @classmethod
-    async def close(cls) -> None:
-        """Close the database connection pool."""
-        if cls._pool:
-            await cls._pool.close()
-            cls._pool = None
+    async def connect(self) -> None:
+        """Establish database connection."""
+        try:
+            self.connection = psycopg2.connect(**self.config)
+            self.cursor = self.connection.cursor(cursor_factory=DictCursor)
+            logger.info("Database connection established")
+        except Exception as e:
+            logger.error(f"Failed to connect to database: {e}")
+            raise
     
-    @classmethod
-    @asynccontextmanager
-    async def get_connection(cls):
-        """Get a database connection from the pool."""
-        if cls._pool is None:
-            await cls.initialize()
-        async with cls._pool.acquire() as connection:
-            yield connection
+    async def disconnect(self) -> None:
+        """Close database connection."""
+        if self.cursor:
+            self.cursor.close()
+        if self.connection:
+            self.connection.close()
+            logger.info("Database connection closed")
     
-    @classmethod
-    async def execute_query(cls, query: str, *args) -> Any:
-        """Execute a query and return the results."""
-        async with cls.get_connection() as conn:
-            return await conn.fetch(query, *args)
+    async def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Execute a query and return results."""
+        try:
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
+        except Exception as e:
+            logger.error(f"Query execution failed: {e}")
+            raise
     
-    @classmethod
-    async def execute_transaction(cls, queries: list[tuple[str, tuple]]) -> None:
-        """Execute multiple queries in a transaction."""
-        async with cls.get_connection() as conn:
-            async with conn.transaction():
-                for query, params in queries:
-                    await conn.execute(query, *params)
+    async def insert_bronze_data(self, data: List[Dict[str, Any]], source: str) -> Dict[str, Any]:
+        """Insert data into bronze layer."""
+        try:
+            results = {
+                'total_records': len(data),
+                'successful_records': 0,
+                'failed_records': 0,
+                'errors': []
+            }
+            
+            for record in data:
+                try:
+                    # Add metadata
+                    record['_metadata'] = {
+                        'ingested_at': datetime.utcnow().isoformat(),
+                        'source': source
+                    }
+                    
+                    # Insert record
+                    query = """
+                        INSERT INTO bronze_data (data, source, ingested_at)
+                        VALUES (%s, %s, %s)
+                    """
+                    self.cursor.execute(
+                        query,
+                        (json.dumps(record), source, datetime.utcnow())
+                    )
+                    results['successful_records'] += 1
+                    
+                except Exception as e:
+                    results['failed_records'] += 1
+                    results['errors'].append(str(e))
+            
+            self.connection.commit()
+            return results
+            
+        except Exception as e:
+            self.connection.rollback()
+            logger.error(f"Failed to insert bronze data: {e}")
+            raise
     
-    @classmethod
-    async def insert_bronze_data(cls, source: str, data: Dict[str, Any]) -> int:
-        """Insert data into the bronze layer."""
-        query = """
-        INSERT INTO bronze_template (
-            source, raw_data, source_timestamp, raw_id,
-            validation_status, metadata, pipeline_run_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id
-        """
-        async with cls.get_connection() as conn:
-            return await conn.fetchval(
-                query,
-                source,
-                data['raw_data'],
-                data.get('source_timestamp'),
-                data.get('raw_id'),
-                data.get('validation_status', 'valid'),
-                data.get('metadata', {}),
-                data.get('pipeline_run_id')
-            )
-
-    @asynccontextmanager
-    async def transaction(self):
-        """Context manager for database transactions."""
-        if not self._pool:
-            await self.initialize()
-        
-        async with self._pool.acquire() as conn:
-            async with conn.transaction() as transaction:
-                yield transaction
-
-    async def execute(self, query: str, *args, **kwargs) -> str:
-        """Execute a query and return the result."""
-        if not self._pool:
-            await self.initialize()
-        
-        async with self._pool.acquire() as conn:
-            return await conn.execute(query, *args, **kwargs)
-
-    async def fetch(self, query: str, *args, **kwargs) -> list:
-        """Execute a query and return all results."""
-        if not self._pool:
-            await self.initialize()
-        
-        async with self._pool.acquire() as conn:
-            return await conn.fetch(query, *args, **kwargs)
-
-    async def fetchrow(self, query: str, *args, **kwargs) -> Optional[Dict[str, Any]]:
-        """Execute a query and return one row."""
-        if not self._pool:
-            await self.initialize()
-        
-        async with self._pool.acquire() as conn:
-            return await conn.fetchrow(query, *args, **kwargs)
-
-    async def create_partition(self, source_name: str, partition_date: str) -> None:
-        """Create a new partition for a source table."""
-        query = """
-        SELECT create_partition_if_not_exists($1, $2::date);
-        """
-        await self.execute(query, source_name, partition_date) 
+    async def get_bronze_data(
+        self,
+        source: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        limit: int = 1000
+    ) -> List[Dict[str, Any]]:
+        """Get data from bronze layer with optional filtering."""
+        try:
+            query = "SELECT * FROM bronze_data WHERE 1=1"
+            params = {}
+            
+            if source:
+                query += " AND source = %s"
+                params['source'] = source
+            
+            if start_time:
+                query += " AND ingested_at >= %s"
+                params['start_time'] = start_time
+            
+            if end_time:
+                query += " AND ingested_at <= %s"
+                params['end_time'] = end_time
+            
+            query += f" ORDER BY ingested_at DESC LIMIT {limit}"
+            
+            return await self.execute_query(query, params)
+            
+        except Exception as e:
+            logger.error(f"Failed to get bronze data: {e}")
+            raise 

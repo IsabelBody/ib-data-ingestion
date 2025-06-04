@@ -35,31 +35,47 @@ ERROR_COUNTER = Counter(
     ['source', 'error_type']
 )
 
-@dataclass
-class IngestionMetrics:
-    """Class for tracking ingestion metrics."""
-    source: str
-    start_time: datetime
-    end_time: Optional[datetime] = None
-    records_processed: int = 0
-    bytes_processed: int = 0
-    status: str = "in_progress"
-    error_type: Optional[str] = None
+class MetricsCollector:
+    """Class for collecting and managing metrics."""
+    
+    def __init__(self, prometheus_client=None):
+        self.prometheus_client = prometheus_client or {
+            'Counter': Counter,
+            'Gauge': Gauge,
+            'Histogram': Histogram
+        }
+        
+        # Initialize metrics
+        self.ingestion_counter = self.prometheus_client['Counter'](
+            'data_ingestion_total',
+            'Total number of data ingestion attempts',
+            ['source', 'status']
+        )
+        
+        self.processing_time_histogram = self.prometheus_client['Histogram'](
+            'data_ingestion_duration_seconds',
+            'Time spent on data ingestion',
+            ['source']
+        )
+        
+        self.data_quality_gauge = self.prometheus_client['Gauge'](
+            'data_quality_score',
+            'Quality score of ingested data',
+            ['source']
+        )
 
-    def complete(self, status: str = "success") -> None:
-        """Mark ingestion as complete and record metrics."""
-        self.end_time = datetime.now()
-        self.status = status
-        
-        # Record metrics
-        INGESTION_COUNTER.labels(source=self.source, status=status).inc()
-        if self.end_time and self.start_time:
-            duration = (self.end_time - self.start_time).total_seconds()
-            INGESTION_DURATION.labels(source=self.source).observe(duration)
-        DATA_VOLUME.labels(source=self.source).set(self.bytes_processed)
-        
-        if status == "error" and self.error_type:
-            ERROR_COUNTER.labels(source=self.source, error_type=self.error_type).inc()
+    def record_ingestion(self, source: str, records: int) -> None:
+        """Record ingestion metrics."""
+        self.ingestion_counter.labels(source=source, status='success').inc()
+
+    def record_processing_time(self, source: str, start_time: datetime, end_time: datetime) -> None:
+        """Record processing time metrics."""
+        duration = (end_time - start_time).total_seconds()
+        self.processing_time_histogram.labels(source=source).observe(duration)
+
+    def record_data_quality(self, source: str, quality_score: float) -> None:
+        """Record data quality metrics."""
+        self.data_quality_gauge.labels(source=source).set(quality_score)
 
 def start_metrics_server(port: int = 8000) -> None:
     """Start the Prometheus metrics server."""

@@ -64,7 +64,7 @@ This repository is focused on **automated and manual ingestion** of personal dat
   - No custom table structures
 
 - **Code**:
-  - Python 3.11+ only
+  - Python 3.11 only (not compatible with Python 3.12+)
   - No external API dependencies beyond data source APIs
   - No machine learning or analytics libraries
   - No visualization or reporting tools
@@ -104,13 +104,13 @@ IB-DATA-INGESTION/
 │   ├── validation_schemas/              # JSON schema definitions
 │   └── credentials/                     # Credential storage (should be .gitignored)
 │
-├── monitoring/                          # Global monitoring and observability
-│   ├── alerts.py                        # Alert definitions
-│   ├── health.py                        # Health check logic
-│   ├── metrics.py                       # Custom metrics logic
-│   └── prometheus.yml                   # Prometheus config
-│
 ├── src/                                 # All source code
+│   ├── monitoring/                      # Monitoring and observability
+│   │   ├── alerts.py                    # Alert definitions
+│   │   ├── health.py                    # Health check logic
+│   │   ├── metrics.py                   # Custom metrics logic
+│   │   └── prometheus.yml               # Prometheus config
+│   │
 │   ├── pipelines/                       # Data ingestion pipelines
 │   │   ├── templates/                   # Abstract/base pipeline templates
 │   │   └── sources/                     # Source-specific pipelines
@@ -163,17 +163,35 @@ IB-DATA-INGESTION/
    git clone https://github.com/yourusername/personal-data-bronze-ingestion.git
    cd personal-data-bronze-ingestion
    ```
-2. **Set up environment**
+
+2. **Set up Python environment**
    ```bash
-   cp env.template .env
+   # Create a virtual environment with Python 3.11
+   python -m venv venv311
+   
+   # Activate the virtual environment
+   # On Windows:
+   .\venv311\Scripts\activate
+   # On Unix/MacOS:
+   source venv311/bin/activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
    # Edit .env with your configuration
    nano .env
    ```
-3. **Start the development environment**
+
+4. **Start the development environment**
    ```bash
    docker-compose up -d
    ```
-4. **Verify the setup**
+
+5. **Verify the setup**
    ```bash
    curl http://localhost:8000/health
    curl http://localhost:8000/metrics

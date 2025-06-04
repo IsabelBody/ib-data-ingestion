@@ -1,3 +1,6 @@
+"""
+Template data extractor module.
+"""
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import aiohttp
@@ -5,6 +8,8 @@ import asyncio
 from utils.logger import logger
 
 class DataExtractor:
+    """Template class for data extraction."""
+    
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.session: Optional[aiohttp.ClientSession] = None
@@ -23,7 +28,16 @@ class DataExtractor:
             await self.session.close()
     
     async def fetch_data(self, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
-        """Fetch data from the source API."""
+        """
+        Fetch data from the source.
+        
+        Args:
+            start_date: Start date for data extraction
+            end_date: End date for data extraction
+            
+        Returns:
+            List of dictionaries containing the extracted data
+        """
         if not self.session:
             raise RuntimeError("Session not initialized. Use 'async with' context manager.")
         

@@ -1,5 +1,7 @@
 # Core dependencies
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.10
+aiohttp==3.9.3
+psycopg[binary,pool]==3.1.18
 python-dotenv==1.0.0
 PyYAML==6.0.1
 requests==2.31.0
@@ -36,6 +38,7 @@ python-json-logger==2.0.7
 # Database
 SQLAlchemy==2.0.23
 alembic==1.12.1
+asyncpg==0.29.0
 
 # API and web
 Flask==3.0.0

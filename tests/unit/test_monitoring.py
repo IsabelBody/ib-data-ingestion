@@ -1,8 +1,18 @@
 import pytest
+from unittest.mock import Mock, patch
 from monitoring.metrics import MetricsCollector
-from monitoring.health import HealthCheck
+from monitoring.health import HealthChecker
 from monitoring.alerts import AlertManager
 from datetime import datetime
+
+@pytest.fixture
+def mock_prometheus_client():
+    mock_client = {
+        'Counter': Mock(return_value=Mock()),
+        'Gauge': Mock(return_value=Mock()),
+        'Histogram': Mock(return_value=Mock())
+    }
+    return mock_client
 
 @pytest.fixture
 def metrics_collector(mock_prometheus_client):
@@ -10,7 +20,7 @@ def metrics_collector(mock_prometheus_client):
 
 @pytest.fixture
 def health_check(test_config):
-    return HealthCheck(test_config)
+    return HealthChecker(test_config)
 
 @pytest.fixture
 def alert_manager():
