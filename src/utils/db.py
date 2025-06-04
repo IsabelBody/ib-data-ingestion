@@ -48,6 +48,10 @@ class DatabaseManager:
     
     async def insert_bronze_data(self, data: List[Dict[str, Any]], source: str) -> Dict[str, Any]:
         """Insert data into bronze layer."""
+        def default_serializer(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            raise TypeError(f"Type {type(obj)} not serializable")
         try:
             results = {
                 'total_records': len(data),
@@ -71,7 +75,7 @@ class DatabaseManager:
                     """
                     self.cursor.execute(
                         query,
-                        (json.dumps(record), source, datetime.utcnow())
+                        (json.dumps(record, default=default_serializer), source, datetime.utcnow())
                     )
                     results['successful_records'] += 1
                     

@@ -26,23 +26,26 @@ def test_config():
 
 @pytest.fixture
 def sample_bronze_data():
-    return {
-        'id': 'test_id_1',
-        'source': 'test_source',
-        'raw_data': {
-            'key1': 'value1',
-            'key2': 'value2',
-            'timestamp': datetime.utcnow().isoformat()
-        },
-        'ingested_at': datetime.utcnow(),
-        'source_timestamp': datetime.utcnow(),
-        'raw_id': 'raw_123',
-        'validation_status': 'valid',
-        'error_message': None,
-        'metadata': {},
-        'version': 1,
-        'environment': 'test'
-    }
+    now_iso = datetime.utcnow().isoformat()
+    return [
+        {
+            'id': 'test_id_1',
+            'source': 'test_source',
+            'raw_data': {
+                'key1': 'value1',
+                'key2': 'value2',
+                'timestamp': now_iso
+            },
+            'ingested_at': now_iso,
+            'source_timestamp': now_iso,
+            'raw_id': 'raw_123',
+            'validation_status': 'valid',
+            'error_message': None,
+            'metadata': {},
+            'version': 1,
+            'environment': 'test'
+        }
+    ]
 
 @pytest.fixture
 def mock_db_connection():
